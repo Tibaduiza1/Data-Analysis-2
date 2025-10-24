@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Washington State Electric Vehicles Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            color: #333;
+            padding: 20px;
+        }
+
+        .dashboard-container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
+            padding: 40px;
+            border-radius: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header .subtitle {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+
+        .header .location {
+            font-size: 1em;
+            margin-top: 10px;
+            opacity: 0.9;
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .kpi-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s;
+            border-left: 6px solid;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: rgba(0, 0, 0, 0.03);
+            border-radius: 50%;
+            transform: translate(30%, -30%);
+        }
+
+        .kpi-card:nth-child(1) { border-left-color: #43cea2; }
+        .kpi-card:nth-child(2) { border-left-color: #185a9d; }
+        .kpi-card:nth-child(3) { border-left-color: #f093fb; }
+        .kpi-card:nth-child(4) { border-left-color: #4facfe; }
+        .kpi-card:nth-child(5) { border-left-color: #fa709a; }
+        .kpi-card:nth-child(6) { border-left-color: #feca57; }
+
+        .kpi-icon {
+            font-size: 2.8em;
+            margin-bottom: 12px;
+        }
+
+        .kpi-value {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: #0f2027;
+            margin: 10px 0 5px 0;
+        }
+
+        .kpi-label {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .kpi-sublabel {
+            color: #999;
+            font-size: 0.85em;
+            margin-top: 8px;
+        }
+
+        /* Insights Section */
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .insight-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .insight-card h3 {
+            font-size: 1.4em;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .insight-card h3 span {
+            margin-right: 10px;
+        }
+
+        .insight-list {
+            list-style: none;
+        }
+
+        .insight-list li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+            line-height: 1.5;
+        }
+
+        .insight-list li:before {
+            content: "⚡";
+            position: absolute;
+            left: 0;
+            font-size: 1.2em;
+        }
+
+        /* Charts Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .chart-card h3 {
+            color: #0f2027;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            border-bottom: 3px solid #43cea2;
+            padding-bottom: 12px;
+            display: flex;
+            align-items: center;
+        }
+
+        .chart-card h3 span {
+            margin-right: 10px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 320px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* Comparison Cards */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 18px;
+            margin-top: 25px;
+        }
+
+        .comparison-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            border: 3px solid #e0e0e0;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .comparison-card:hover {
+            border-color: #43cea2;
+            transform: scale(1.03);
+            box-shadow: 0 8px 25px rgba(67, 206, 162, 0.2);
+        }
+
+        .comparison-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #0f2027;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+        }
+
+        .comparison-stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .comparison-stat:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.95em;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #185a9d;
+            font-size: 1.05em;
+        }
+
+        /* Performance Indicators */
+        .performance-indicator {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .rank1 { background: linear-gradient(135deg, #43cea2, #185a9d); }
+        .rank2 { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .rank3 { background: linear-gradient(135deg, #f093fb, #f5576c); }
+        .rank4 { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+        .rank5 { background: linear-gradient(135deg, #feca57, #ff9a56); }
+
+        /* Data Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .data-table th {
+            background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
+            color: white;
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.95em;
+            letter-spacing: 0.5px;
+        }
+
+        .data-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 0.95em;
+        }
+
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .data-table tr:nth-child(even) {
+            background: #fafbfc;
+        }
+
+        .data-table tr:nth-child(even):hover {
+            background: #f0f2f5;
+        }
+
+        /* Badge Styles */
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge-bev {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-phev {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .badge-eligible {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .badge-not-eligible {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+
+        /* Footer */
+        .footer {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            margin-top: 25px;
+            color: #666;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .footer p {
+            margin: 5px 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .kpi-value {
+                font-size: 1.8em;
+            }
+        }
+
+        /* Animation */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .kpi-card, .chart-card, .insight-card {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .kpi-card:nth-child(2) { animation-delay: 0.1s; }
+        .kpi-card:nth-child(3) { animation-delay: 0.2s; }
+        .kpi-card:nth-child(4) { animation-delay: 0.3s; }
+        .kpi-card:nth-child(5) { animation-delay: 0.4s; }
+        .kpi-card:nth-child(6) { animation-delay: 0.5s; }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>⚡ Washington State Electric Vehicles Dashboard</h1>
+            <p class="subtitle">Comprehensive Analysis of EV Adoption & Distribution</p>
+            <p class="location">📍 State of Washington | Data Sample: 209 Vehicles</p>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-icon">🚗</div>
+                <div class="kpi-value">209</div>
+                <div class="kpi-label">Total EVs Registered</div>
+                <div class="kpi-sublabel">Electric Vehicles</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon">🔋</div>
+                <div class="kpi-value">68.9%</div>
+                <div class="kpi-label">Battery EVs (BEV)</div>
+                <div class="kpi-sublabel">144 pure electric vehicles</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon">🔌</div>
+                <div class="kpi-value">31.1%</div>
+                <div class="kpi-label">Plug-in Hybrids</div>
+                <div class="kpi-sublabel">65 PHEV vehicles</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon">📏</div>
+                <div class="kpi-value">129</div>
+                <div class="kpi-label">Avg. Range (miles)</div>
+                <div class="kpi-sublabel">Max: 330 mi | Min: 13 mi</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon">✅</div>
+                <div class="kpi-value">66%</div>
+                <div class="kpi-label">CAFV Eligible</div>
+                <div class="kpi-sublabel">138 qualified vehicles</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon">🏭</div>
+                <div class="kpi-value">21</div>
+                <div class="kpi-label">Manufacturers</div>
+                <div class="kpi-sublabel">Different brands</div>
+            </div>
+        </div>
+
+        <!-- Key Insights -->
+        <div class="insights-grid">
+            <div class="insight-card">
+                <h3><span>🎯</span>Top Performers</h3>
+                <ul class="insight-list">
+                    <li><strong>Tesla dominates</strong> with 36.8% market share (77 vehicles)</li>
+                    <li><strong>King County leads</strong> with 31.6% of all EVs (66 vehicles)</li>
+                    <li><strong>Seattle is #1 city</strong> with 26 electric vehicles registered</li>
+                    <li><strong>2023 peak year</strong> with 33 new EV registrations</li>
+                </ul>
+            </div>
+
+            <div class="insight-card">
+                <h3><span>📊</span>Key Trends</h3>
+                <ul class="insight-list">
+                    <li><strong>BEV preference:</strong> 68.9% choose full electric over hybrid</li>
+                    <li><strong>Model 3 most popular</strong> with 35 units (16.7% of all vehicles)</li>
+                    <li><strong>66% CAFV eligible</strong> vehicles qualify for incentives</li>
+                    <li><strong>18.2% low battery</strong> vehicles not eligible for benefits</li>
+                </ul>
+            </div>
+
+            <div class="insight-card">
+                <h3><span>💡</span>Growth Insights</h3>
+                <ul class="insight-list">
+                    <li><strong>Strong adoption:</strong> 2018-2023 shows consistent growth</li>
+                    <li><strong>Urban concentration:</strong> 55% in King & Snohomish counties</li>
+                    <li><strong>Range improvement:</strong> Newer models average 200+ miles</li>
+                    <li><strong>Diverse brands:</strong> 21 manufacturers offering options</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+            <!-- EV Type Distribution -->
+            <div class="chart-card">
+                <h3><span>🔋</span>EV Type Distribution</h3>
+                <div class="chart-container">
+                    <canvas id="evTypeChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Top 10 Brands -->
+            <div class="chart-card">
+                <h3><span>🏭</span>Top 10 Manufacturers</h3>
+                <div class="chart-container">
+                    <canvas id="brandsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- County Distribution -->
+            <div class="chart-card full-width">
+                <h3><span>🗺️</span>Distribution by County</h3>
+                <div class="chart-container">
+                    <canvas id="countyChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Registration by Year -->
+            <div class="chart-card">
+                <h3><span>📅</span>Registrations by Year</h3>
+                <div class="chart-container">
+                    <canvas id="yearChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Top Cities -->
+            <div class="chart-card">
+                <h3><span>🏙️</span>Top 10 Cities</h3>
+                <div class="chart-container">
+                    <canvas id="citiesChart"></canvas>
+                </div>
+            </div>
+
+            <!-- CAFV Eligibility -->
+            <div class="chart-card">
+                <h3><span>✅</span>CAFV Eligibility Status</h3>
+                <div class="chart-container">
+                    <canvas id="cafvChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Top Models -->
+            <div class="chart-card">
+                <h3><span>🚗</span>Most Popular Models</h3>
+                <div class="chart-container">
+                    <canvas id="modelsChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed County Comparison -->
+        <div class="chart-card full-width">
+            <h3><span>🔬</span>Top 5 Counties - Detailed Analysis</h3>
+            <div class="comparison-grid">
+                <div class="comparison-card">
+                    <div class="comparison-title">
+                        <span class="performance-indicator rank1"></span>
+                        King County
+                    </div>
+                    <div class="comparison-stat">
+                        <span class="stat-label">Total Vehicles:</span>
+                        <span class="stat-value">66</span>
+                    </div>
+                    <div class="comparison-stat">
+                        <span class="stat-label">Market Share:</span>
+                        <span class="stat-value">31.6%</span>
+                    </div>
+                    <div class="comparison-stat">
+                        <span class="stat-label">Top City:</span>
+                        <span class="stat-value">Seattle (26)</span>
+                    </div>
+                    <div class="comparison-stat">
+                        <span class="stat-label">Status:</span>
+                        <span class="badge badge-eligible">Leader</span>
+                    </div>
+                </div>
+
+                <div class="comparison-card">
+                    <div class="comparison-title">
+                        <span class="performance-indicator rank2"></span>
+                        Snohomish County
+                    </div>
+                    <div class="comparison-stat">
+                        <span class="stat-label">Total Vehicles:</span>
+                        <span class="stat-value">48</span>
+                    </div>
+                    <div class="comparison-stat">
+                        <span class="stat-label">Market Share:</span>
+                        <span class="stat-value">23.0%</span>
+                    </div>
+                    <div class="comparison-stat">
+                        <span class="stat-label">Top City:</span>
+                        <span class="stat-value">Bothell (7)</span>
+                    </div>
+                    <div class="comparison-stat">
+                        <span class="stat-label">Status:</span>
+                        <span class="badge badge-eligible">Strong</span>
+                    </div>
+                </div>
+
+                <div class="comparison-card">
+                    <div class="comparison-title">
+                        <span class="performance-indicator rank3"></span>
+                        Kitsap County
+                    </div>
+                    <div class="comparison-stat">
+                        <span class="stat-label">Total Vehicles:</span>
+                        <span class="stat-value">22</span>
+                    </div>
+                    <div class="comparison-stat">
+                        <span class="stat-label">Market Share:</span>
+                        <span class="stat-value">10.5%</span>
+                    </div>
+                    <div class="comparison-stat">
+                        <span class="stat-label">Top City:</span>
+                        <span class="stat-value">Poulsbo (7)</span>
+                    </div>
+                    <div class="comparison-stat">
+                        <span class="stat-label">Status:</span>
+                        <span class="badge badge-eligible">Growing</span>
+                    </div>
+                </div>
+
+                <div class="comparison-card">
+                    <div class="comparison-title">
+                        <span class="performance-indicator rank4"></span>
+                        Yakima County
+                    </div>
+                    <div class="comparison-stat">
+                        <span class="stat-label">Total Vehicles:</span>
+                        <span class="stat-value">18</span>
+                    </div>
+                    <div class="comparison-stat">
+                        <span class="stat-label">Market Share:</span>
+                        <span class="stat-value">8.6%</span>
+                    </div>
+                    <div class="comparison-stat">
+                        <span class="stat-label">Top City:</span>
+                        <span class="stat-value">Yakima (12)</span>
+                    </div>
+                    <div class="comparison-stat">
+                        <span class="stat-label">Status:</span>
+                        <span class="badge badge-eligible">Emerging</span>
+                    </div>
+                </div>
+
+                <div class="comparison-card">
+                    <div class="comparison-title">
+                        <span class="performance-indicator rank5"></span>
+                        Thurston County
+                    </div>
+                    <div class="comparison-stat">
+                        <span class="stat-label">Total Vehicles:</span>
+                        <span class="stat-value">18</span>
+                    </div>
+                    <div class="comparison-stat">
+                        <span class="stat-label">Market Share:</span>
+                        <span class="stat-value">8.6%</span>
+                    </div>
+                    <div class="comparison-stat">
+                        <span class="stat-label">Top City:</span>
+                        <span class="stat-value">Olympia (10)</span>
+                    </div>
+                    <div class="comparison-stat">
+                        <span class="stat-label">Status:</span>
+                        <span class="badge badge-eligible">Emerging</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Models Table -->
+        <div class="chart-card full-width">
+            <h3><span>🏆</span>Top 15 Most Popular EV Models</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Model</th>
+                        <th>Quantity</th>
+                        <th>Market Share</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>🥇 1</td>
+                        <td><strong>TESLA MODEL 3</strong></td>
+                        <td>35</td>
+                        <td>16.7%</td>
+                        <td><span class="badge badge-bev">BEV</span></td>
+                        <td><span class="badge badge-eligible">Eligible</span></td>
+                    </tr>
+                    <tr>
+                        <td>🥈 2</td>
+                        <td><strong>NISSAN LEAF</strong></td>
+                        <td>32</td>
+                        <td>15.3%</td>
+                        <td><span class="badge badge-bev">BEV</span></td>
+                        <td><span class="badge badge-eligible">Eligible</span></td>
+                    </tr>
+                    <tr>
+                        <td>🥉 3</td>
+                        <td><strong>TESLA MODEL Y</strong></td>
+                        <td>20</td>
+                        <td>9.6%</td>
+                        <td><span class="badge badge-bev">BEV</span></td>
+                        <td><span class="badge badge-eligible">Eligible</span></td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td>TESLA MODEL X</td>
+                        <td>11</td>
+                        <td>5.3%</td>
+                        <td><span class="badge badge-bev">BEV</span></td>
+                        <td><span class="badge badge-eligible">Eligible</span></td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td>TESLA MODEL S</td>
+                        <td>11</td>
+                        <td>5.3%</td>
+                        <td><span class="badge badge-bev">BEV</span></td>
+                        <td><span class="badge badge-eligible">Eligible</span></td>
+                    </tr>
+                    <tr>
+                        <td>6</td>
+                        <td>BMW X5</td>
+                        <td>10</td>
+                        <td>4.8%</td>
+                        <td><span class="badge badge-phev">PHEV</span></td>
+                        <td><span class="badge badge-eligible">Eligible</span></td>
+                    </tr>
+                    <tr>
+                        <td>7</td>
+                        <td>JEEP WRANGLER</td>
+                        <td>8</td>
+                        <td>3.8%</td>
+                        <td><span class="badge badge-phev">PHEV</span></td>
+                        <td><span class="badge badge-not-eligible">Low Range</span></td>
+                    </tr>
+                    <tr>
+                        <td>8</td>
+                        <td>CHEVROLET BOLT EV</td>
+                        <td>7</td>
+                        <td>3.3%</td>
+                        <td><span class="badge badge-bev">BEV</span></td>
+                        <td><span class="badge badge-eligible">Eligible</span></td>
+                    </tr>
+                    <tr>
+                        <td>9</td>
+                        <td>BMW I3</td>
+                        <td>7</td>
+                        <td>3.3%</td>
+                        <td><span class="badge badge-bev">BEV</span></td>
+                        <td><span class="badge badge-eligible">Eligible</span></td>
+                    </tr>
+                    <tr>
+                        <td>10</td>
+                        <td>CHEVROLET VOLT</td>
+                        <td>7</td>
+                        <td>3.3%</td>
+                        <td><span class="badge badge-phev">PHEV</span></td>
+                        <td><span class="badge badge-eligible">Eligible</span></td>
+                    </tr>
+                    <tr>
+                        <td>11</td>
+                        <td>FIAT 500</td>
+                        <td>4</td>
+                        <td>1.9%</td>
+                        <td><span class="badge badge-bev">BEV</span></td>
+                        <td><span class="badge badge-eligible">Eligible</span></td>
+                    </tr>
+                    <tr>
+                        <td>12</td>
+                        <td>FORD FUSION</td>
+                        <td>4</td>
+                        <td>1.9%</td>
+                        <td><span class="badge badge-phev">PHEV</span></td>
+                        <td><span class="badge badge-not-eligible">Low Range</span></td>
+                    </tr>
+                    <tr>
+                        <td>13</td>
+                        <td>TOYOTA PRIUS PRIME</td>
+                        <td>4</td>
+                        <td>1.9%</td>
+                        <td><span class="badge badge-phev">PHEV</span></td>
+                        <td><span class="badge badge-not-eligible">Low Range</span></td>
+                    </tr>
+                    <tr>
+                        <td>14</td>
+                        <td>VOLKSWAGEN ID.4</td>
+                        <td>4</td>
+                        <td>1.9%</td>
+                        <td><span class="badge badge-bev">BEV</span></td>
+                        <td><span class="badge badge-eligible">Eligible</span></td>
+                    </tr>
+                    <tr>
+                        <td>15</td>
+                        <td>CHRYSLER PACIFICA</td>
+                        <td>3</td>
+                        <td>1.4%</td>
+                        <td><span class="badge badge-phev">PHEV</span></td>
+                        <td><span class="badge badge-eligible">Eligible</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>⚡ Washington State Electric Vehicles Dashboard</strong></p>
+            <p>Data Analysis | Generated: October 2025 | Sample Size: 209 Registered EVs</p>
+            <p>Promoting Sustainable Transportation & Clean Energy Adoption</p>
+        </div>
+    </div>
+
+    <script>
+        // Chart.js Configuration
+        Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+        Chart.defaults.color = '#666';
+
+        // Color Schemes
+        const gradientColors = {
+            green: ['#43cea2', '#185a9d'],
+            purple: ['#667eea', '#764ba2'],
+            pink: ['#f093fb', '#f5576c'],
+            blue: ['#4facfe', '#00f2fe'],
+            orange: ['#feca57', '#ff9a56']
+        };
+
+        // EV Type Chart
+        const evTypeCtx = document.getElementById('evTypeChart').getContext('2d');
+        new Chart(evTypeCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Battery Electric (BEV)', 'Plug-in Hybrid (PHEV)'],
+                datasets: [{
+                    data: [144, 65],
+                    backgroundColor: ['#43cea2', '#185a9d'],
+                    borderWidth: 5,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const percentage = ((value / 209) * 100).toFixed(1);
+                                return label + ': ' + value + ' (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Top Brands Chart
+        const brandsCtx = document.getElementById('brandsChart').getContext('2d');
+        new Chart(brandsCtx, {
+            type: 'bar',
+            data: {
+                labels: ['TESLA', 'NISSAN', 'BMW', 'CHEVROLET', 'JEEP', 'FORD', 'KIA', 'TOYOTA', 'FIAT', 'RIVIAN'],
+                datasets: [{
+                    label: 'Vehicles',
+                    data: [77, 32, 22, 15, 11, 10, 7, 6, 4, 4],
+                    backgroundColor: '#667eea',
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const percentage = ((context.parsed.y / 209) * 100).toFixed(1);
+                                return context.parsed.y + ' vehicles (' + percentage + '%)';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 10 }
+                    }
+                }
+            }
+        });
+
+        // County Distribution Chart
+        const countyCtx = document.getElementById('countyChart').getContext('2d');
+        new Chart(countyCtx, {
+            type: 'bar',
+            data: {
+                labels: ['King', 'Snohomish', 'Kitsap', 'Yakima', 'Thurston', 'Skagit', 'Whitman', 'Island', 'Clark', 'Grant', 'Others'],
+                datasets: [{
+                    label: 'Vehicles per County',
+                    data: [66, 48, 22, 18, 18, 10, 5, 4, 4, 3, 11],
+                    backgroundColor: [
+                        '#43cea2', '#185a9d', '#667eea', '#764ba2', '#f093fb',
+                        '#f5576c', '#4facfe', '#00f2fe', '#feca57', '#ff9a56', '#999'
+                    ],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const percentage = ((context.parsed.x / 209) * 100).toFixed(1);
+                                return context.parsed.x + ' vehicles (' + percentage + '%)';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 10 }
+                    }
+                }
+            }
+        });
+
+        // Year Chart
+        const yearCtx = document.getElementById('yearChart').getContext('2d');
+        new Chart(yearCtx, {
+            type: 'line',
+            data: {
+                labels: ['2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024'],
+                datasets: [{
+                    label: 'Registrations',
+                    data: [4, 2, 10, 6, 12, 14, 15, 37, 20, 23, 12, 17, 33, 4],
+                    borderColor: '#43cea2',
+                    backgroundColor: 'rgba(67, 206, 162, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: '#43cea2'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 5 }
+                    }
+                }
+            }
+        });
+
+        // Cities Chart
+        const citiesCtx = document.getElementById('citiesChart').getContext('2d');
+        new Chart(citiesCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Seattle', 'Yakima', 'Olympia', 'Bellevue', 'Bothell', 'Poulsbo', 'Bremerton', 'Everett', 'Tukwila', 'Lake Stevens'],
+                datasets: [{
+                    label: 'Vehicles',
+                    data: [26, 12, 10, 8, 7, 7, 7, 6, 6, 5],
+                    backgroundColor: '#f093fb',
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 5 }
+                    }
+                }
+            }
+        });
+
+        // CAFV Eligibility Chart
+        const cafvCtx = document.getElementById('cafvChart').getContext('2d');
+        new Chart(cafvCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Eligible', 'Not Eligible (Low Battery)', 'Unknown'],
+                datasets: [{
+                    data: [138, 38, 33],
+                    backgroundColor: ['#43cea2', '#fa709a', '#feca57'],
+                    borderWidth: 4,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            font: { size: 11 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const percentage = ((value / 209) * 100).toFixed(1);
+                                return label + ': ' + value + ' (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Top Models Chart
+        const modelsCtx = document.getElementById('modelsChart').getContext('2d');
+        new Chart(modelsCtx, {
+            type: 'bar',
+            data: {
+                labels: ['MODEL 3', 'LEAF', 'MODEL Y', 'MODEL X', 'MODEL S', 'X5', 'WRANGLER', 'BOLT EV'],
+                datasets: [{
+                    label: 'Units',
+                    data: [35, 32, 20, 11, 11, 10, 8, 7],
+                    backgroundColor: '#4facfe',
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 5 }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
